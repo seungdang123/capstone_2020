@@ -1,0 +1,265 @@
+<!DOCTYPE HTML>
+<!--
+    Editorial by HTML5 UP
+    html5up.net | @ajlkn
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+    <head>
+        <title>Study Monitoring</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        <link rel="stylesheet" href="main.css"/>
+    </head>
+    <body class="is-preload">
+
+        <!-- Wrapper -->
+            <div id="wrapper">
+
+                <!-- Main -->
+                    <div id="main">
+                        <div class="inner">
+
+                            <!-- Header -->
+                                <header id="header">
+                                    <a href="index.html" class="logo"><strong>Study Monitoring</strong> by Teachable Machine</a>
+                                </header>
+
+                            <!-- Banner -->
+                                <section id="banner">
+                                    <div class="content">
+                                        <header>
+                                            <h1>티쳐블 머신을 이용한<br />
+                                            자세교정 프로그램</h1>
+                                            <p>언제, 어디서든 자세 교정을 도와주는 프로그램</p>
+                                        </header>
+                                        <p>이 프로그램은 잘못된 자세로 부터 오는 다양한 질병 등을 예방하기 위해 제작되었습니다. <br> 수치가 1에 가까울 수록 잘못된 자세를 의미합니다. <br>프로그램을 시작하려면 스타트 버튼을 누른 후 잠시만 기다려주세요.</p>
+                                    </div>
+                                    <span class="image object">
+                                        <button type="button" onclick="init()">Monitoring Start</button>
+                                        <div><canvas id="canvas" style="margin-top: 50px;"></canvas></div>
+                                        <div id="label-container"></div>
+                                    </span>
+                                </section>
+
+                            <!-- Footer -->
+                                <footer id="footer" style="position: static; bottom: 0;">
+                                    <p class="copyright">&copy; Managed by CU. All rights reserved. Design: <a href="https://html5up.net">HTML5 UP</a>.</p>
+                                </footer>
+
+                        </div>
+                    </div>
+
+            </div>
+
+        <!-- Scripts -->
+            <script src="assets/js/jquery.min.js"></script>
+            <script src="assets/js/browser.min.js"></script>
+            <script src="assets/js/breakpoints.min.js"></script>
+            <script src="assets/js/util.js"></script>
+            <script src="assets/js/main.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+            
+
+    </body>
+    
+    <script type="text/javascript">
+
+        // More API functions here:
+        // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
+    
+        // the link to your model provided by Teachable Machine export panel
+        const URL = "./my_model/";
+        let model, webcam, ctx, labelContainer, maxPredictions;
+    
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+    
+            // load the model and metadata
+            // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+            // Note: the pose library adds a tmPose object to your window (window.tmPose)
+            model = await tmPose.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+    
+            // Convenience function to setup a webcam
+            const size = 280;
+            const flip = true; // whether to flip the webcam
+            webcam = new tmPose.Webcam(size, size, flip); // width, height, flip
+            await webcam.setup(); // request access to the webcam
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+    
+            // append/get elements to the DOM
+            const canvas = document.getElementById("canvas");
+            canvas.width = size; canvas.height = size;
+            ctx = canvas.getContext("2d");
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) { // and class labels
+                var contents = document.createElement("div")
+                contents.setAttribute("id",'id'+[i]);
+                labelContainer.appendChild(contents);
+            }
+        }
+
+        let before = "Good";
+        let now = "";
+        let dropped_Head;
+        let lean_Back;
+        let resting_Chin;
+        let counter = 0;
+
+        function reset_Counter(){
+            if (before != now){
+                counter = 0;
+            }
+        }
+    
+        function delayed_Sound(){                                // Output sound when be kept bad posture about 5s  
+        
+            reset_Counter();
+
+            if(now == "dh"){
+                counter += 1;
+            }
+            else if(now =="lb") {
+                counter += 1;
+            }
+            else if(now =="rc"){
+                counter += 1;
+            }
+            else{
+                counter = 0;
+            }
+    
+    
+            if(now=="dh" && counter == 6){
+                droppedHead_Sound();
+                counter = 0;
+            }
+            else if(now=="lb" && counter == 6){
+                leanback_Sound();
+                counter = 0;
+            }
+            else if(now =="rc" && counter == 6){
+                restingChin_Sound();
+                counter = 0;
+            }
+        }   
+    
+        function droppedHead_Sound(){                           // Add sound mp3 files
+            var audio = new Audio();
+            audio.src = "./cower.mp3";
+            audio.play();
+        }
+    
+        function leanback_Sound(){
+            var audio = new Audio();
+            audio.src = "./leanback.mp3";
+            audio.play();
+        }
+    
+        function restingChin_Sound(){
+            var audio = new Audio();
+            audio.src = "./jawpose.mp3";
+            audio.play();
+        }
+
+
+        function change_Color(){
+            var edit1 = document.getElementById('id1');
+            var edit2 = document.getElementById('id2');
+            var edit3 = document.getElementById('id3');
+            var rmID = document.getElementById('red');
+
+            if(now == "dh"){
+                edit1.style.color = "red";
+                edit2.style.color = "#9fa3a6"
+                edit3.style.color = '#9fa3a6';
+            }
+            else if(now =="lb"){
+                edit1.style.color = "#9fa3a6";
+                edit2.style.color = "red"
+                edit3.style.color = '#9fa3a6';
+            }
+            else if(now =="rc"){
+                edit1.style.color = "#9fa3a6";
+                edit2.style.color = "#9fa3a6"
+                edit3.style.color = 'red';
+            }
+
+        }
+    
+        function check_Posture(){                               // if checked measure is bigger than 0.85 , change now status and call sound func
+    
+            console.log(now);
+            console.log(counter);
+    
+            if(dropped_Head>=0.85){
+                before = now;
+                now = "dh";
+            }
+    
+            else if(lean_Back>=0.85){
+                before = now;
+                now = "lb";
+            }
+            else if(resting_Chin >=0.85){
+                before = now;
+                now = "rc";
+            }
+            
+            change_Color();
+            delayed_Sound();
+        }
+
+    
+    
+        setInterval("check_Posture()",1300);
+    
+    
+        async function loop(timestamp) {
+            webcam.update(); // update the webcam frame
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+    
+        async function predict() {
+            // Prediction #1: run input through posenet
+            // estimatePose can take in an image, video or canvas html element
+            const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+            // Prediction 2: run input through teachable machine classification model
+            const prediction = await model.predict(posenetOutput);
+    
+    
+            dropped_Head = prediction[1].probability.toFixed(2);
+            lean_Back = prediction[2].probability.toFixed(2);
+            resting_Chin = prediction[3].probability.toFixed(2);
+    
+    
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction =
+                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+
+            // finally draw the poses
+            drawPose(pose);
+        }
+
+
+
+        function drawPose(pose) {
+            if (webcam.canvas) {
+                ctx.drawImage(webcam.canvas, 0, 0);
+            }
+        }
+
+
+    </script>
+    </body>
+    </html>
+    
+</html>
