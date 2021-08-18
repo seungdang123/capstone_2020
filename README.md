@@ -20,14 +20,6 @@ It is a program that helps you to correct your posture so that you can maintain 
 
 ---
 
-# # Swing2app
-
-You can build mobile app easily and fast if you use this service.
----
-
-![image](/images/swing2app.png)
-
----
 
 # # Mobilization
 
